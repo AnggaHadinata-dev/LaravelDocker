@@ -1,0 +1,69 @@
+version: '3'
+
+# Network
+networks:
+ laravel:
+  driver: bridge
+
+# Volume
+volumes: 
+  lbdata:
+    driver: local
+
+services:
+ app:
+  build: .
+  container_name: laravel_container
+  image: laravel
+  restart: unless-stopped
+  tty: true
+  environment:
+    SERVICE_NAME: app
+  working_dir: /var/www/laravel
+  volumes:
+   - .:/var/www/laravel
+   - ./storage/php.ini:/usr/local/etc/php/conf.d/local.ini
+  networks:
+   - laravel
+
+ webserver:
+  container_name: nginx_container
+  image: nginx:alpine
+  restart: unless-stopped
+  tty: true
+  ports:
+   - "2022:80"
+  volumes:
+   - .:/var/www/laravel
+   - ./storage/:/etc/nginx/conf.d/
+  networks:
+   - laravel
+
+ db:
+   image: mysql:5.7
+   container_name: db_container
+   restart: always
+   tty: true
+   ports:
+   - "20222:3306"
+   volumes:
+   - lbdata:/var/lib/mysql
+   environment:
+    MYSQL_PASSWORD: laravel
+    MYSQL_ROOT_PASSWORD: laravel
+    SERVICE_TAGS: dev
+    SERVICE_NAME: mysql
+   networks:
+   - laravel
+ 
+ phpmyadmin:
+   image: phpmyadmin/phpmyadmin
+   container_name: phpmyadmin_container
+   links:
+    - db
+   restart: always
+   ports:
+   - "7000:80"
+   networks:
+   - laravel
+
